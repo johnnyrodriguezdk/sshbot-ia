@@ -54,11 +54,32 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-# Verificar PM2
+# ================================================
+# INSTALAR DEPENDENCIAS BÁSICAS PRIMERO
+# ================================================
+echo -e "\n${CYAN}${BOLD}📦 INSTALANDO DEPENDENCIAS BÁSICAS...${NC}"
+apt-get update -y
+apt-get install -y curl wget git nano sqlite3 jq unzip nginx chromium-browser chromium-chromedriver
+apt-get install -y gcc g++ make
+
+# Instalar Node.js 18.x si no está
+if ! command -v node &> /dev/null; then
+    echo -e "${YELLOW}📦 Instalando Node.js 18.x...${NC}"
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+    apt-get install -y nodejs
+fi
+
+# Instalar PM2 si no está
 if ! command -v pm2 &> /dev/null; then
-    echo -e "${YELLOW}⚠️  PM2 no encontrado. Instalando...${NC}"
+    echo -e "${YELLOW}📦 Instalando PM2...${NC}"
     npm install -g pm2
 fi
+
+# Verificar instalaciones
+echo -e "${GREEN}✅ Node.js: $(node --version)${NC}"
+echo -e "${GREEN}✅ npm: $(npm --version)${NC}"
+echo -e "${GREEN}✅ PM2: $(pm2 --version)${NC}"
+echo -e "${GREEN}✅ SQLite3: $(sqlite3 --version)${NC}"
 
 # ================================================
 # CONFIGURACIÓN DEL NOMBRE (SOLO VISUAL)
@@ -96,15 +117,12 @@ if [[ ! $REPLY =~ ^[Ss]$ ]]; then
 fi
 
 # ================================================
-# LIMPIEZA (solo si PM2 existe)
+# LIMPIEZA
 # ================================================
 echo -e "\n${CYAN}${BOLD}🧹 LIMPIEZA...${NC}"
 
-# Detener procesos si PM2 existe
-if command -v pm2 &> /dev/null; then
-    pm2 list | grep -E "wassh-bot" | awk '{print $2}' | xargs -r pm2 delete 2>/dev/null || true
-fi
-
+# Detener procesos si existen
+pm2 list | grep -E "wassh-bot" | awk '{print $2}' | xargs -r pm2 delete 2>/dev/null || true
 pkill -f chrome 2>/dev/null || true
 pkill -f node 2>/dev/null || true
 
@@ -169,7 +187,7 @@ echo -e "${GREEN}✅ Prompt guardado${NC}"
 # ================================================
 echo -e "\n${CYAN}${BOLD}⚙️ CONFIGURANDO OPCIONES...${NC}"
 
-read -p "📲 Link de descarga para Android: " APP_LINK
+read -p "📲 Link de descarga para Android (Enter para omitir): " APP_LINK
 APP_LINK=${APP_LINK:-"https://www.mediafire.com/file/p8kgthxbsid7xws/MAJ/DNI_AND_FIL"}
 
 read -p "🆘 Número de WhatsApp para representante (ej: 543435071016): " SUPPORT_NUMBER
@@ -191,6 +209,7 @@ TEST_HOURS=${TEST_HOURS:-2}
 read -p "🌐 Puerto para el panel VPS (3000): " PANEL_PORT
 PANEL_PORT=${PANEL_PORT:-3000}
 
+# Detectar IP
 SERVER_IP=$(curl -4 -s --max-time 10 ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
 SERVER_IP=${SERVER_IP:-"127.0.0.1"}
 
@@ -312,13 +331,6 @@ CREATE INDEX IF NOT EXISTS idx_conversations_created ON conversations(created_at
 SQL
 
 echo -e "${GREEN}✅ Base de datos creada${NC}"
-
-# ================================================
-# INSTALAR DEPENDENCIAS
-# ================================================
-echo -e "\n${CYAN}📦 Instalando dependencias del sistema...${NC}"
-apt-get update -y
-apt-get install -y sqlite3 jq curl wget git unzip nginx chromium-browser
 
 # ================================================
 # CREAR PACKAGE.JSON
@@ -491,6 +503,7 @@ client.on('qr', (qr) => {
 
 client.on('ready', () => {
     console.log('\n✅ BOT CONECTADO A WHATSAPP\n');
+    db.run('INSERT INTO logs (type, message) VALUES (?, ?)', ['system', 'Bot conectado']);
 });
 
 client.on('message', async (message) => {
@@ -542,6 +555,13 @@ app.get('/api/conversations/recent', (req, res) => {
     });
 });
 
+app.get('/api/logs', (req, res) => {
+    db.all(`SELECT * FROM logs ORDER BY created_at DESC LIMIT 20`, (err, rows) => {
+        if (err) res.status(500).json({ error: err.message });
+        else res.json(rows || []);
+    });
+});
+
 // ================================================
 // PANEL WEB
 // ================================================
@@ -569,10 +589,11 @@ app.get('/', (req, res) => {
                     color: white;
                     text-align: center;
                     margin-bottom: 30px;
+                    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
                 }
                 .stats-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
                     gap: 20px;
                     margin-bottom: 30px;
                 }
@@ -600,6 +621,12 @@ app.get('/', (req, res) => {
                     border-radius: 10px;
                     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
                 }
+                .section h2 {
+                    color: #333;
+                    margin-bottom: 15px;
+                    padding-bottom: 10px;
+                    border-bottom: 2px solid #667eea;
+                }
                 table {
                     width: 100%;
                     border-collapse: collapse;
@@ -609,6 +636,17 @@ app.get('/', (req, res) => {
                     text-align: left;
                     border-bottom: 1px solid #ddd;
                 }
+                th {
+                    background: #f5f5f5;
+                }
+                .badge {
+                    padding: 3px 8px;
+                    border-radius: 3px;
+                    font-size: 0.85em;
+                    font-weight: bold;
+                }
+                .badge-success { background: #28a745; color: white; }
+                .badge-info { background: #17a2b8; color: white; }
                 .refresh-btn {
                     display: block;
                     width: 200px;
@@ -619,6 +657,10 @@ app.get('/', (req, res) => {
                     border: none;
                     border-radius: 5px;
                     cursor: pointer;
+                    font-size: 1em;
+                }
+                .refresh-btn:hover {
+                    background: #5a67d8;
                 }
                 @media (max-width: 768px) {
                     .sections {
@@ -674,29 +716,66 @@ app.get('/', (req, res) => {
                         </table>
                     </div>
                 </div>
-                <button class="refresh-btn" onclick="cargarDatos()">🔄 Actualizar</button>
+
+                <div class="section" style="margin-top:20px;">
+                    <h2>📋 Últimos Logs</h2>
+                    <table>
+                        <thead>
+                            <tr><th>Tipo</th><th>Mensaje</th><th>Hora</th></tr>
+                        </thead>
+                        <tbody id="logsBody">
+                            <tr><td colspan="3">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="refresh-btn" onclick="cargarDatos()">🔄 Actualizar Datos</button>
             </div>
+
             <script>
                 async function cargarDatos() {
                     try {
+                        // Estadísticas
                         const stats = await fetch('/api/stats').then(r => r.json());
                         document.getElementById('totalUsers').textContent = stats.total_users || 0;
                         document.getElementById('todayChats').textContent = stats.today_conversations || 0;
                         document.getElementById('totalChats').textContent = stats.total_conversations || 0;
                         
+                        // Usuarios
                         const users = await fetch('/api/users/recent').then(r => r.json());
                         document.getElementById('usersBody').innerHTML = users.length ? 
-                            users.map(u => \`<tr><td>\${u.phone}</td><td>\${u.tipo}</td><td>\${new Date(u.created_at).toLocaleString()}</td></tr>\`).join('') :
+                            users.map(u => \`<tr>
+                                <td>\${u.phone}</td>
+                                <td><span class="badge \${u.tipo === 'test' ? 'badge-info' : 'badge-success'}">\${u.tipo}</span></td>
+                                <td>\${new Date(u.created_at).toLocaleString()}</td>
+                            </tr>\`).join('') :
                             '<tr><td colspan="3">Sin usuarios</td></tr>';
                         
+                        // Conversaciones
                         const chats = await fetch('/api/conversations/recent').then(r => r.json());
                         document.getElementById('conversationsBody').innerHTML = chats.length ?
-                            chats.map(c => \`<tr><td>\${c.phone}</td><td>\${c.message.substring(0,30)}...</td><td>\${new Date(c.created_at).toLocaleTimeString()}</td></tr>\`).join('') :
+                            chats.map(c => \`<tr>
+                                <td>\${c.phone}</td>
+                                <td>\${c.message.substring(0,30)}\${c.message.length > 30 ? '...' : ''}</td>
+                                <td>\${new Date(c.created_at).toLocaleTimeString()}</td>
+                            </tr>\`).join('') :
                             '<tr><td colspan="3">Sin conversaciones</td></tr>';
+                        
+                        // Logs
+                        const logs = await fetch('/api/logs').then(r => r.json());
+                        document.getElementById('logsBody').innerHTML = logs.length ?
+                            logs.map(l => \`<tr>
+                                <td>\${l.type}</td>
+                                <td>\${l.message}</td>
+                                <td>\${new Date(l.created_at).toLocaleTimeString()}</td>
+                            </tr>\`).join('') :
+                            '<tr><td colspan="3">Sin logs</td></tr>';
                     } catch (e) {
-                        console.error(e);
+                        console.error('Error:', e);
                     }
                 }
+                
+                // Cargar cada 30 segundos
                 cargarDatos();
                 setInterval(cargarDatos, 30000);
             </script>
@@ -706,19 +785,29 @@ app.get('/', (req, res) => {
 });
 
 // ================================================
-// INICIAR
+// INICIAR SERVIDOR
 // ================================================
 app.listen(config.bot.panel_port, '0.0.0.0', () => {
     console.log(`
-╔════════════════════════════════════════════╗
-║  📊 PANEL VPS: http://${config.bot.server_ip}:${config.bot.panel_port}
-║  🤖 Gemini: ${config.gemini.enabled ? 'ACTIVADO' : 'DESACTIVADO'}
-║  📱 Bot: ${config.bot.name}
-╚════════════════════════════════════════════╝
+╔════════════════════════════════════════════════════╗
+║  📊 PANEL VPS ACTIVADO                             ║
+╠════════════════════════════════════════════════════╣
+║  • URL: http://${config.bot.server_ip}:${config.bot.panel_port}  ║
+║  • Gemini: ${config.gemini.enabled ? '✅ ACTIVADO' : '❌ DESACTIVADO'}                ║
+║  • Bot: ${config.bot.name}                         ║
+╚════════════════════════════════════════════════════╝
     `);
 });
 
+// Inicializar WhatsApp
 client.initialize();
+
+// Manejo de errores
+process.on('uncaughtException', (error) => {
+    console.error('Error no capturado:', error);
+    db.run('INSERT INTO logs (type, message, data) VALUES (?, ?, ?)',
+        ['error', error.message, JSON.stringify(error)]);
+});
 EOF
 
 # ================================================
@@ -736,6 +825,7 @@ cat > /etc/nginx/sites-available/wassh-panel << EOF
 server {
     listen 80;
     server_name $SERVER_IP;
+
     location / {
         proxy_pass http://localhost:$PANEL_PORT;
         proxy_http_version 1.1;
@@ -743,39 +833,102 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host \$host;
         proxy_cache_bypass \$http_upgrade;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 }
 EOF
 
+# Activar configuración de Nginx
 ln -sf /etc/nginx/sites-available/wassh-panel /etc/nginx/sites-enabled/
-nginx -t && systemctl restart nginx || true
+rm -f /etc/nginx/sites-enabled/default
+nginx -t && systemctl restart nginx || echo -e "${YELLOW}⚠️  Nginx no se pudo configurar, pero el panel funciona en el puerto $PANEL_PORT${NC}"
 
 # ================================================
-# INICIAR BOT
+# INICIAR BOT CON PM2
 # ================================================
-echo -e "\n${CYAN}🚀 Iniciando el bot...${NC}"
+echo -e "\n${CYAN}🚀 Iniciando el bot con PM2...${NC}"
 cd "$INSTALL_DIR"
 pm2 start bot.js --name wassh-bot
 pm2 save
 pm2 startup
 
+# Configurar PM2 para iniciar con el sistema
+env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u root --hp /root
+
 # ================================================
-# MOSTRAR INFO FINAL
+# CONFIGURAR CRON PARA MANTENIMIENTO
+# ================================================
+echo -e "\n${CYAN}⏰ Configurando mantenimiento automático...${NC}"
+cat > /etc/cron.d/wassh-maintenance << EOF
+# Limpiar logs cada día
+0 0 * * * root find /sshbot/logs -type f -mtime +7 -delete
+0 0 * * * root find /root/.pm2/logs -type f -mtime +7 -delete
+# Limpiar QRs viejos
+*/30 * * * * root find /sshbot/qr_codes -type f -mmin +30 -delete
+EOF
+
+chmod 644 /etc/cron.d/wassh-maintenance
+
+# ================================================
+# MOSTRAR INFORMACIÓN FINAL
 # ================================================
 clear
 echo -e "${GREEN}${BOLD}"
 echo "╔════════════════════════════════════════════════════╗"
-echo "║     ✅ INSTALACIÓN COMPLETADA                      ║"
+echo "║     ✅ INSTALACIÓN COMPLETADA EXITOSAMENTE        ║"
 echo "╚════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-echo -e "${CYAN}📱 BOT:${NC} ${GREEN}$BOT_NAME${NC}"
-echo -e "${CYAN}📊 PANEL:${NC} ${GREEN}http://$SERVER_IP:$PANEL_PORT${NC}"
-echo -e "${CYAN}🤖 GEMINI:${NC} ${GREEN}$([ -n "$GEMINI_API_KEY" ] && echo "ACTIVADO" || echo "DESACTIVADO")${NC}"
+echo -e "${CYAN}${BOLD}📱 BOT WHATSAPP${NC}"
+echo -e "   • Nombre: ${GREEN}$BOT_NAME${NC}"
+echo -e "   • Estado: ${GREEN}ACTIVO${NC}"
+echo -e "   • Gemini AI: ${GREEN}$([ -n "$GEMINI_API_KEY" ] && echo "ACTIVADO" || echo "DESACTIVADO")${NC}"
 echo
-echo -e "${YELLOW}📱 PARA VER EL QR:${NC}"
-echo -e "   ${GREEN}pm2 logs wassh-bot${NC}"
+
+echo -e "${CYAN}${BOLD}📊 PANEL VPS${NC}"
+echo -e "   • URL Directa: ${GREEN}http://$SERVER_IP:$PANEL_PORT${NC}"
+echo -e "   • URL vía Nginx: ${GREEN}http://$SERVER_IP${NC}"
+echo -e "   • Puerto: ${GREEN}$PANEL_PORT${NC}"
 echo
-echo -e "${YELLOW}📱 COMANDOS DEL BOT:${NC}"
-echo -e "   /info, /precios, /soporte, /android, /iphone"
+
+echo -e "${CYAN}${BOLD}📁 RUTAS IMPORTANTES${NC}"
+echo -e "   • Instalación: ${GREEN}/sshbot${NC}"
+echo -e "   • Base de datos: ${GREEN}$DB_FILE${NC}"
+echo -e "   • Prompt Gemini: ${GREEN}$PROMPT_FILE${NC}"
+echo -e "   • Sesión WhatsApp: ${GREEN}$SESSION_DIR${NC}"
 echo
+
+echo -e "${CYAN}${BOLD}🔄 COMANDOS ÚTILES${NC}"
+echo -e "   • Ver logs del bot: ${GREEN}pm2 logs wassh-bot${NC}"
+echo -e "   • Ver estado: ${GREEN}pm2 status${NC}"
+echo -e "   • Reiniciar bot: ${GREEN}pm2 restart wassh-bot${NC}"
+echo -e "   • Detener bot: ${GREEN}pm2 stop wassh-bot${NC}"
+echo -e "   • Ver QR (si es necesario): ${GREEN}pm2 logs wassh-bot | grep -A 10 \"ESCANEA\"${NC}"
+echo
+
+echo -e "${CYAN}${BOLD}📱 COMANDOS DEL BOT${NC}"
+echo -e "   • ${GREEN}/info${NC}     - Información del servicio"
+echo -e "   • ${GREEN}/precios${NC}  - Ver precios"
+echo -e "   • ${GREEN}/soporte${NC}  - Contactar representante"
+echo -e "   • ${GREEN}/android${NC}  - Descarga para Android"
+echo -e "   • ${GREEN}/iphone${NC}   - Descarga para iPhone"
+echo
+
+echo -e "${YELLOW}${BOLD}⚠️  PRÓXIMOS PASOS:${NC}"
+echo -e "   1. Espera a que aparezca el código QR en los logs"
+echo -e "   2. Escanea el QR con WhatsApp (celular principal)"
+echo -e "   3. Accede al panel VPS para monitorear"
+echo -e "   4. Prueba los comandos enviando mensajes al bot"
+echo
+
+echo -e "${GREEN}${BOLD}✅ PARA VER EL QR AHORA MISMO, EJECUTA:${NC}"
+echo -e "   ${CYAN}pm2 logs wassh-bot${NC}"
+echo
+
+# Mostrar el QR inmediatamente si ya está disponible
+echo -e "${YELLOW}Mostrando logs en tiempo real (esperando QR)...${NC}"
+echo -e "${BLUE}Presiona Ctrl+C para salir de los logs cuando veas el QR${NC}"
+sleep 3
+pm2 logs wassh-bot

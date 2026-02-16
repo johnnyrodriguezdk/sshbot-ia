@@ -157,7 +157,7 @@ fi
 # ================================================
 echo -e "\n${CYAN}💬 Guardando prompt personalizado...${NC}"
 cat > "$PROMPT_FILE" << 'PROMPT_EOF'
-Eres un asistente virtual de una empresa que vende servicio de internet ilimitado para celulares Android y iPhone.
+Eres un asistente virtual de una empresa que vende servicio de internet ilimitado para celulares Android y iPhone llamada $BOT_NAME.
 
 INFORMACIÓN IMPORTANTE QUE DEBES SABER:
 - El servicio funciona SOLO para la empresa PERSONAL (abono y prepago)
@@ -167,9 +167,12 @@ INFORMACIÓN IMPORTANTE QUE DEBES SABER:
 - NO debes realizar ventas ni pedir comprobantes
 - Si el cliente quiere contratar, debes ofrecer transferirlo con un representante
 - Horario de representantes: 10:30 a 22:30
+- Los precios son: 7 días: $PRICE_7D, 15 días: $PRICE_15D, 30 días: $PRICE_30D, 50 días: $PRICE_50D
+- Link de descarga Android: $APP_LINK
+- Link de representante: https://wa.me/$SUPPORT_NUMBER
 
-Cuando un cliente envíe cualquier mensaje, debes:
-1. SIEMPRE responder con este menú primero:
+REGLAS DE CONVERSACIÓN:
+1. SIEMPRE que un cliente envíe un mensaje, debes responder con el menú principal:
 
 *⚙️ $BOT_NAME ChatBot* 🧑‍💻
              ⸻↓⸻
@@ -184,23 +187,17 @@ Cuando un cliente envíe cualquier mensaje, debes:
 
 ⚠️ Si necesitas hablar con un representante nuestro horario de atención es 10:30 a 22:30hs.
 
-2. Luego, cuando el cliente responda con un número (1,2,3,4), debes dar la información correspondiente:
+2. Cuando el cliente responda con un número:
+   - Opción 1: Dar información detallada del servicio (qué es, cómo funciona, disponibilidad Android/iPhone, solo Personal)
+   - Opción 2: Mostrar los precios y mencionar que el pago es por transferencia
+   - Opción 3: Explicar que para revender deben contactar directamente con un representante
+   - Opción 4: Proporcionar el enlace del representante y recordar el horario
 
-- Opción 1 (INFORMACIÓN): Explicar qué es el servicio, cómo funciona, que es para Android/iPhone, solo para Personal, etc.
+3. Si el cliente escribe algo que no sea un número, muestra el menú nuevamente.
 
-- Opción 2 (PRECIOS): Mostrar los precios: 7 días, 15 días, 30 días, 50 días y mencionar que el pago es por transferencia
-
-- Opción 3 (REVENDER): Explicar que para revender deben contactar directamente con un representante para obtener precios mayoristas
-
-- Opción 4 (REPRESENTANTE): Proporcionar el enlace de WhatsApp del representante y recordar el horario
-
-3. Si el cliente escribe algo que no sea un número, debes mostrar el menú nuevamente y pedirle que elija una opción válida.
-
-Recuerda ser amable, servicial y siempre mantener el enfoque en la empresa $BOT_NAME.
+Sé amable, servicial y mantén siempre el enfoque en la empresa $BOT_NAME.
 PROMPT_EOF
 
-# Reemplazar $BOT_NAME en el prompt
-sed -i "s/\$BOT_NAME/$BOT_NAME/g" "$PROMPT_FILE"
 echo -e "${GREEN}✅ Prompt guardado${NC}"
 
 # ================================================
@@ -226,6 +223,15 @@ PRICE_50D=${PRICE_50D:-9700}
 
 read -p "⏰ Horas de prueba gratis (2): " TEST_HOURS
 TEST_HOURS=${TEST_HOURS:-2}
+
+# Reemplazar variables en el prompt
+sed -i "s/\$BOT_NAME/$BOT_NAME/g" "$PROMPT_FILE"
+sed -i "s/\$PRICE_7D/$PRICE_7D/g" "$PROMPT_FILE"
+sed -i "s/\$PRICE_15D/$PRICE_15D/g" "$PROMPT_FILE"
+sed -i "s/\$PRICE_30D/$PRICE_30D/g" "$PROMPT_FILE"
+sed -i "s/\$PRICE_50D/$PRICE_50D/g" "$PROMPT_FILE"
+sed -i "s/\$APP_LINK/$APP_LINK/g" "$PROMPT_FILE"
+sed -i "s/\$SUPPORT_NUMBER/$SUPPORT_NUMBER/g" "$PROMPT_FILE"
 
 # ================================================
 # TEXTO DE INFORMACIÓN
@@ -264,7 +270,7 @@ cat > "$CONFIG_FILE" << EOF
     "gemini": {
         "api_key": "$GEMINI_API_KEY",
         "enabled": true,
-        "model": "gemini-1.5-flash",
+        "model": "gemini-pro",
         "prompt_file": "$PROMPT_FILE"
     },
     "prices": {
@@ -392,7 +398,7 @@ const promptSistema = fs.readFileSync(config.gemini.prompt_file, 'utf8');
 
 // Inicializar Gemini
 const genAI = new GoogleGenerativeAI(config.gemini.api_key);
-const model = genAI.getGenerativeModel({ model: config.gemini.model });
+const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
 // Base de datos
 const db = new sqlite3.Database(config.paths.database);
@@ -424,25 +430,30 @@ const client = new Client({
 // ================================================
 async function procesarConGemini(mensaje, numero, nombreUsuario = 'Cliente') {
     try {
-        // Obtener el menú actual del usuario
-        const menu = await new Promise((resolve) => {
-            db.get('SELECT last_menu FROM users WHERE phone = ?', [numero], (err, row) => {
-                resolve(row?.last_menu || 'main');
+        // Obtener información del usuario
+        const user = await new Promise((resolve) => {
+            db.get('SELECT * FROM users WHERE phone = ?', [numero], (err, row) => {
+                resolve(row);
             });
         });
 
         // Crear contexto para Gemini
         const contexto = `
-Usuario: ${nombreUsuario}
-Número: ${numero}
-Menú actual: ${menu}
-Hora: ${new Date().toLocaleTimeString()}
-Mensaje: "${mensaje}"
+Información del usuario:
+- Nombre: ${nombreUsuario}
+- Número: ${numero}
+- Primera vez: ${!user ? 'Sí' : 'No'}
+- Fecha registro: ${user?.created_at || 'Nuevo'}
+- Hora actual: ${new Date().toLocaleTimeString()}
 
-Basado en el prompt del sistema y el mensaje del usuario, genera una respuesta apropiada.
+Mensaje del cliente: "${mensaje}"
+
+Instrucciones: Basado en el mensaje del cliente y la información de la empresa, genera una respuesta apropiada. Recuerda siempre incluir el menú cuando sea apropiado.
 `;
 
         const fullPrompt = `${promptSistema}\n\n${contexto}`;
+        
+        // Generar respuesta
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;
         const text = response.text();
@@ -450,13 +461,26 @@ Basado en el prompt del sistema y el mensaje del usuario, genera una respuesta a
         // Guardar conversación
         db.run(
             'INSERT INTO conversations (phone, message, response) VALUES (?, ?, ?)',
-            [numero, mensaje, text]
+            [numero, mensaje.substring(0, 500), text.substring(0, 500)]
         );
         
         return text;
     } catch (error) {
         console.error('Error con Gemini:', error);
-        return "Lo siento, tuve un problema para procesar tu mensaje. Por favor, intenta de nuevo.";
+        
+        // Respuesta de respaldo en caso de error
+        return `*⚙️ ${config.bot.name} ChatBot* 🧑‍💻
+             ⸻↓⸻
+> 🕋 BIENVENIDO A TIENDA ${config.bot.name}
+
+1 ⁃📢 INFORMACIÓN
+2 ⁃🏷️ PRECIOS
+3 ⁃🛍️ REVENDER SERVICIO
+4 ⁃👥 HABLAR CON UN REPRESENTANTE
+
+👉 Elige una opción (1-4):
+
+⚠️ Horario representantes: 10:30 a 22:30hs.`;
     }
 }
 
@@ -470,13 +494,15 @@ client.on('qr', (qr) => {
     // Guardar QR
     const qrPath = path.join(config.paths.qr_codes, 'qr_latest.txt');
     fs.writeFileSync(qrPath, qr);
+    console.log(`📁 QR también guardado en: ${qrPath}`);
 });
 
 client.on('ready', () => {
     console.log('\n✅ BOT CONECTADO A WHATSAPP\n');
     console.log(`🤖 Bot: ${config.bot.name}`);
-    console.log(`🤖 Gemini: ACTIVADO`);
-    console.log(`📱 Modo: Menú interactivo + IA Omnipresente\n`);
+    console.log(`🤖 Gemini: ACTIVADO (modelo: gemini-pro)`);
+    console.log(`📱 Modo: Menú interactivo + IA Omnipresente`);
+    console.log(`⏰ Los representantes atienden de 10:30 a 22:30hs\n`);
     
     db.run('INSERT INTO logs (type, message) VALUES (?, ?)',
         ['system', 'Bot conectado a WhatsApp']);
@@ -486,23 +512,32 @@ client.on('message', async (message) => {
     try {
         const numero = message.from;
         
-        // Ignorar mensajes de grupos
-        if (message.from.includes('@g.us')) return;
+        // Ignorar mensajes de grupos y estados
+        if (message.from.includes('@g.us') || message.from.includes('status')) return;
         
-        console.log(`📨 Mensaje de ${numero}: ${message.body}`);
+        console.log(`📨 Mensaje de ${numero}: ${message.body.substring(0, 50)}${message.body.length > 50 ? '...' : ''}`);
         
-        // Obtener o crear usuario
+        // Registrar o actualizar usuario
         db.get('SELECT * FROM users WHERE phone = ?', [numero], async (err, user) => {
             if (!user) {
-                db.run('INSERT INTO users (phone, last_menu) VALUES (?, ?)',
-                    [numero, 'main']);
+                db.run('INSERT INTO users (phone, name, last_menu) VALUES (?, ?, ?)',
+                    [numero, message._data?.notifyName || 'Cliente', 'main']);
+                console.log(`👤 Nuevo usuario: ${numero}`);
             }
             
-            // Procesar mensaje con Gemini (siempre, sin importar el contenido)
-            const respuesta = await procesarConGemini(message.body, numero, message._data?.notifyName || 'Cliente');
+            // Marcar que el usuario está escribiendo (simulado)
+            await message.sendTyping();
+            
+            // Procesar mensaje con Gemini
+            const respuesta = await procesarConGemini(
+                message.body, 
+                numero, 
+                message._data?.notifyName || 'Cliente'
+            );
             
             if (respuesta) {
                 await message.reply(respuesta);
+                console.log(`✅ Respuesta enviada a ${numero}`);
             }
         });
         
@@ -514,20 +549,22 @@ client.on('message', async (message) => {
 // ================================================
 // INICIAR BOT
 // ================================================
+console.log('🚀 Iniciando bot con menú interactivo...');
 client.initialize();
 
 // Manejo de errores
 process.on('uncaughtException', (error) => {
-    console.error('Error no capturado:', error);
+    console.error('❌ Error no capturado:', error.message);
     db.run('INSERT INTO logs (type, message, data) VALUES (?, ?, ?)',
         ['error', error.message, JSON.stringify(error)]);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-    console.error('Promesa rechazada:', reason);
+    console.error('❌ Promesa rechazada:', reason);
 });
 
-console.log('🚀 Iniciando bot con menú interactivo...');
+// Mensaje de inicio
+console.log('📱 Bot iniciado. Esperando QR...');
 EOF
 
 # ================================================
@@ -571,7 +608,7 @@ echo -e "${NC}"
 echo -e "${CYAN}${BOLD}📱 BOT WHATSAPP CON MENÚ${NC}"
 echo -e "   • Nombre: ${GREEN}$BOT_NAME${NC}"
 echo -e "   • Estado: ${GREEN}ACTIVO${NC}"
-echo -e "   • Gemini: ${GREEN}ACTIVADO (omnipresente)${NC}"
+echo -e "   • Gemini: ${GREEN}ACTIVADO (modelo: gemini-pro)${NC}"
 echo
 
 echo -e "${CYAN}${BOLD}📋 MENÚ DEL BOT:${NC}"
@@ -593,11 +630,12 @@ echo -e "${CYAN}${BOLD}🔄 COMANDOS ÚTILES:${NC}"
 echo -e "   • Ver QR: ${GREEN}pm2 logs wassh-bot${NC}"
 echo -e "   • Ver logs: ${GREEN}pm2 logs wassh-bot${NC}"
 echo -e "   • Reiniciar: ${GREEN}pm2 restart wassh-bot${NC}"
+echo -e "   • Detener: ${GREEN}pm2 stop wassh-bot${NC}"
 echo
 
 echo -e "${YELLOW}${BOLD}⚠️  IMPORTANTE:${NC}"
 echo -e "   • El bot responde AUTOMÁTICAMENTE a TODOS los mensajes"
-echo -e "   • No necesita comandos, la IA interpreta todo"
+echo -e "   • Usa el modelo gemini-pro (más estable)"
 echo -e "   • Siempre mostrará el menú y procesará las opciones"
 echo -e "   • Número de soporte: ${GREEN}https://wa.me/$SUPPORT_NUMBER${NC}"
 echo

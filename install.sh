@@ -1,14 +1,14 @@
 #!/bin/bash
 # ================================================
-# BOT WHATSAPP - WPPCONNECT + IA MEJORADA
+# BOT WHATSAPP - WPPCONNECT + IA MEJORADA (SIN ESTADOS)
 # ================================================
 # CARACTERÍSTICAS:
-# ✅ WPPCONNECT (del segundo bot)
-# ✅ IA MEJORADA del primer bot (SSH BOT PRO v8.7)
+# ✅ WPPCONNECT
+# ✅ IA MEJORADA (SSH BOT PRO v8.7)
 # ✅ PANEL VPS COMPLETO
+# ✅ SIN CREACIÓN DE ESTADOS EN WHATSAPP
 # ✅ SIN CREACIÓN AUTOMÁTICA DE USUARIOS SSH
 # ✅ SIN PAGOS AUTOMÁTICOS
-# ✅ SIN ESTADOS EN WHATSAPP
 # ================================================
 
 set -e
@@ -37,20 +37,20 @@ cat << "BANNER"
 ║        ╚═╝   ╚═╝╚══════╝╚═╝  ╚═══╝╚═════╝ ╚═╝  ╚═╝         ║
 ╠══════════════════════════════════════════════════════════════╣
 ║                                                              ║
-║       🤖 BOT WPPCONNECT + IA MEJORADA v8.7                  ║
-║     ✅ WPPCONNECT · ✅ IA OMNIPRESENTE · ✅ PANEL VPS       ║
+║       🤖 BOT WPPCONNECT + IA MEJORADA (SIN ESTADOS)         ║
+║     ✅ WPPCONNECT · ✅ IA OMNIPRESENTE · ✅ SIN ESTADOS     ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 BANNER
 echo -e "${NC}"
 
 echo -e "${GREEN}✅ CARACTERÍSTICAS:${NC}"
-echo -e "  🤖 ${CYAN}IA MEJORADA (SSH BOT PRO v8.7)${NC} - Asistencia técnica detallada"
+echo -e "  🤖 ${CYAN}IA MEJORADA${NC} - Asistencia técnica detallada"
 echo -e "  📱 ${PURPLE}WPPConnect${NC} - Conexión WhatsApp estable"
 echo -e "  📊 ${BLUE}Panel VPS${NC} - Estadísticas y control total"
+echo -e "  🔕 ${RED}Sin Estados${NC} - NO crea estados en WhatsApp"
 echo -e "  🚫 ${RED}Sin SSH${NC} - Sin creación automática de usuarios"
 echo -e "  🚫 ${RED}Sin MercadoPago${NC} - Sin pagos automáticos"
-echo -e "  📁 ${CYAN}Ruta fija${NC} - /sshbot"
 echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}\n"
 
 # Verificar root
@@ -129,9 +129,9 @@ chmod -R 700 "$SESSION_DIR"
 echo -e "${GREEN}✅ Estructura creada${NC}"
 
 # ================================================
-# CONFIGURACIÓN DE GEMINI AI (MEJORADA)
+# CONFIGURACIÓN DE GEMINI AI
 # ================================================
-echo -e "\n${CYAN}${BOLD}🤖 CONFIGURACIÓN DE IA MEJORADA${NC}"
+echo -e "\n${CYAN}${BOLD}🤖 CONFIGURACIÓN DE IA${NC}"
 read -p "🔑 Ingresa tu API Key de Google Gemini: " GEMINI_API_KEY
 GEMINI_API_KEY=${GEMINI_API_KEY:-""}
 
@@ -143,22 +143,28 @@ else
 fi
 
 # ================================================
-# GUARDAR PROMPT MEJORADO (del primer bot)
+# GUARDAR PROMPT (SIN GENERACIÓN DE ESTADOS)
 # ================================================
-echo -e "\n${CYAN}💬 Guardando prompt mejorado...${NC}"
+echo -e "\n${CYAN}💬 Guardando prompt (sin estados)...${NC}"
 cat > "$PROMPT_FILE" << 'PROMPT_EOF'
-Eres un asistente virtual de una empresa que vende servicio de internet ilimitado para celulares Android y iPhone.
+Eres un asistente virtual de una empresa que vende servicio de internet ilimitado para celulares Android y iPhone llamada $BOT_NAME.
 
-INFORMACIÓN IMPORTANTE QUE DEBES SABER:
-- El servicio funciona SOLO para la empresa PERSONAL (abono y prepago)
+REGLAS IMPORTANTES:
+- NO debes crear ni publicar ningún estado en WhatsApp
+- NO debes cambiar tu foto de perfil, nombre o información
+- Solo debes responder mensajes directos de los clientes
+- NO debes enviar mensajes automáticos a grupos o contactos
+
+INFORMACIÓN DE LA EMPRESA:
+- El servicio funciona SOLO para PERSONAL (abono y prepago)
 - NO disponible para Movistar, Tuenti o Claro
-- El servicio se vende como archivos de configuración (servidores, servers, o "llavecita")
-- El método de pago es por transferencia bancaria
-- NO debes realizar ventas ni pedir comprobantes
-- Si el cliente quiere contratar, debes ofrecer transferirlo con un representante
-- Horario de representantes: 10:30 a 22:30
+- Se vende como archivos de configuración (servidores, servers, "llavecita")
+- Pago por transferencia bancaria
+- NO realices ventas ni pidas comprobantes
+- Para contratar, ofrece transferir con representante
+- Horario representantes: 10:30 a 22:30
 
-GUÍA DE ASISTENCIA TÉCNICA DETALLADA:
+GUÍA DE ASISTENCIA TÉCNICA:
 🔧 SOLUCIÓN RÁPIDA:
 1️⃣ Verifica usuario/contraseña (minúsculas, sin espacios)
 2️⃣ Conéctate a 4G con buena señal (3+ barras)
@@ -172,9 +178,9 @@ GUÍA DE ASISTENCIA TÉCNICA DETALLADA:
 ● Revisa los ajustes de batería desde la opción "Menú".
 ● Siempre conecta con el botón AUTO.
 
-Cuando un cliente envíe cualquier mensaje, debes:
-1. Detectar si es un problema técnico y ofrecer la guía correspondiente
-2. Si no es técnico, mostrar el menú principal:
+RESPUESTAS:
+1. Si detectas un problema técnico, ofrece la guía de solución
+2. Si no, muestra este menú:
 
 *⚙️ $BOT_NAME ChatBot* 🧑‍💻
              ⸻↓⸻
@@ -189,8 +195,10 @@ Cuando un cliente envíe cualquier mensaje, debes:
 
 ⚠️ Horario representantes: 10:30 a 22:30hs.
 
-Sé amable, servicial y mantén siempre el enfoque en la empresa $BOT_NAME.
+RECUERDA: SOLO RESPONDES MENSAJES DIRECTOS, NUNCA CREES ESTADOS.
 PROMPT_EOF
+
+sed -i "s/\$BOT_NAME/$BOT_NAME/g" "$PROMPT_FILE"
 
 # ================================================
 # CONFIGURACIÓN DEL BOT
@@ -221,9 +229,6 @@ PANEL_PORT=${PANEL_PORT:-3000}
 SERVER_IP=$(curl -4 -s --max-time 10 ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
 SERVER_IP=${SERVER_IP:-"127.0.0.1"}
 
-# Reemplazar variables en el prompt
-sed -i "s/\$BOT_NAME/$BOT_NAME/g" "$PROMPT_FILE"
-
 # ================================================
 # TEXTO DE INFORMACIÓN
 # ================================================
@@ -253,12 +258,13 @@ cat > "$CONFIG_FILE" << EOF
 {
     "bot": {
         "name": "$BOT_NAME",
-        "version": "3.0-WPPCONNECT-IA-MEJORADA",
+        "version": "3.0-WPPCONNECT-NO-STATUS",
         "server_ip": "$SERVER_IP",
         "test_hours": $TEST_HOURS,
         "info_file": "$INFO_FILE",
         "process_name": "$PROCESS_NAME",
-        "panel_port": $PANEL_PORT
+        "panel_port": $PANEL_PORT,
+        "disable_status": true
     },
     "gemini": {
         "api_key": "$GEMINI_API_KEY",
@@ -291,12 +297,11 @@ cat > "$CONFIG_FILE" << EOF
 EOF
 
 # ================================================
-# CREAR BASE DE DATOS (con tablas de IA mejorada)
+# CREAR BASE DE DATOS
 # ================================================
-echo -e "\n${CYAN}🗄️ Creando base de datos mejorada...${NC}"
+echo -e "\n${CYAN}🗄️ Creando base de datos...${NC}"
 
 sqlite3 "$DB_FILE" << 'SQL'
--- Tabla de usuarios
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     phone TEXT UNIQUE,
@@ -304,8 +309,6 @@ CREATE TABLE IF NOT EXISTS users (
     last_menu TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-
--- Control de pruebas diarias
 CREATE TABLE IF NOT EXISTS daily_tests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     phone TEXT,
@@ -313,8 +316,6 @@ CREATE TABLE IF NOT EXISTS daily_tests (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(phone, date)
 );
-
--- Conversaciones con IA
 CREATE TABLE IF NOT EXISTS conversations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     phone TEXT,
@@ -322,8 +323,6 @@ CREATE TABLE IF NOT EXISTS conversations (
     response TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-
--- Sistema de detección de problemas (IA mejorada)
 CREATE TABLE IF NOT EXISTS technical_issues (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     phone TEXT,
@@ -334,8 +333,6 @@ CREATE TABLE IF NOT EXISTS technical_issues (
     confidence_score REAL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-
--- Logs del sistema
 CREATE TABLE IF NOT EXISTS logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     type TEXT,
@@ -343,28 +340,25 @@ CREATE TABLE IF NOT EXISTS logs (
     data TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-
--- Índices
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 CREATE INDEX IF NOT EXISTS idx_conversations_phone ON conversations(phone);
-CREATE INDEX IF NOT EXISTS idx_technical_issues_phone ON technical_issues(phone);
 SQL
 
 echo -e "${GREEN}✅ Base de datos creada${NC}"
 
 # ================================================
-# INSTALAR DEPENDENCIAS (WPPCONNECT)
+# INSTALAR DEPENDENCIAS
 # ================================================
 echo -e "\n${CYAN}📦 Instalando dependencias del sistema...${NC}"
 apt-get update -y
 apt-get install -y curl wget git unzip nginx
 
-# Node.js 18.x (compatible con WPPConnect)
+# Node.js 18.x
 echo -e "${YELLOW}📦 Instalando Node.js 18.x...${NC}"
 curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
 apt-get install -y nodejs gcc g++ make
 
-# Chrome (necesario para WPPConnect)
+# Chrome
 echo -e "${YELLOW}🌐 Instalando Google Chrome...${NC}"
 wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - 2>/dev/null || true
 echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
@@ -376,15 +370,15 @@ echo -e "${YELLOW}⚡ Instalando PM2...${NC}"
 npm install -g pm2
 
 # ================================================
-# CREAR PACKAGE.JSON (con WPPConnect)
+# CREAR PACKAGE.JSON
 # ================================================
 echo -e "\n${CYAN}📦 Creando package.json...${NC}"
 
 cat > "$INSTALL_DIR/package.json" << 'EOF'
 {
-    "name": "wppconnect-bot-ia",
+    "name": "wppconnect-bot-no-status",
     "version": "3.0.0",
-    "description": "Bot WhatsApp con WPPConnect e IA Mejorada",
+    "description": "Bot WhatsApp con WPPConnect e IA (sin estados)",
     "main": "bot.js",
     "scripts": {
         "start": "node bot.js",
@@ -405,9 +399,9 @@ cat > "$INSTALL_DIR/package.json" << 'EOF'
 EOF
 
 # ================================================
-# CREAR ARCHIVO PRINCIPAL DEL BOT (WPPConnect + IA Mejorada)
+# CREAR ARCHIVO PRINCIPAL DEL BOT (SIN ESTADOS)
 # ================================================
-echo -e "\n${CYAN}📝 Creando archivo principal del bot...${NC}"
+echo -e "\n${CYAN}📝 Creando archivo principal del bot (sin estados)...${NC}"
 
 cat > "$INSTALL_DIR/bot.js" << 'EOF'
 const wppconnect = require('@wppconnect-team/wppconnect');
@@ -431,13 +425,13 @@ const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 // Base de datos
 const db = new sqlite3.Database(config.paths.database);
 
-// Express app para panel VPS
+// Express app
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 // ================================================
-// DETECCIÓN DE PROBLEMAS TÉCNICOS (IA MEJORADA)
+// DETECCIÓN DE PROBLEMAS TÉCNICOS
 // ================================================
 function detectTechnicalProblem(message) {
     const text = message.toLowerCase();
@@ -459,30 +453,24 @@ function detectTechnicalProblem(message) {
 }
 
 // ================================================
-// FUNCIÓN PRINCIPAL DE IA MEJORADA
+// FUNCIÓN DE IA (SIN GENERAR ESTADOS)
 // ================================================
 async function procesarConIA(mensaje, numero, nombreUsuario = 'Cliente') {
     try {
-        // Detectar si es problema técnico
         const techDetection = detectTechnicalProblem(mensaje);
         
-        // Crear contexto enriquecido
         const contexto = `
-Información del usuario:
-- Nombre: ${nombreUsuario}
-- Número: ${numero}
-- Hora: ${moment().format('HH:mm')}
-- Fecha: ${moment().format('DD/MM/YYYY')}
-
+Usuario: ${nombreUsuario}
+Número: ${numero}
+Hora: ${moment().format('HH:mm')}
+Fecha: ${moment().format('DD/MM/YYYY')}
 Mensaje: "${mensaje}"
-Detección técnica: ${techDetection.detected ? 'SÍ' : 'NO'}
-Confianza: ${Math.round(techDetection.confidence * 100)}%
+Problema técnico: ${techDetection.detected ? 'SÍ' : 'NO'}
 
-Instrucciones específicas:
-1. Si es problema técnico (confianza > 40%), ofrece la guía detallada de solución
-2. Si no, muestra el menú principal
-3. Sé conciso pero útil
-4. Mantén el tono profesional y amable de la empresa ${config.bot.name}
+INSTRUCCIÓN IMPORTANTE:
+SOLO debes responder a este mensaje directo.
+NO debes crear ni publicar ningún estado en WhatsApp.
+NO debes cambiar la foto de perfil ni el nombre del bot.
 `;
 
         const fullPrompt = `${promptSistema}\n\n${contexto}`;
@@ -490,7 +478,6 @@ Instrucciones específicas:
         const response = await result.response;
         const text = response.text();
         
-        // Guardar conversación y detección técnica
         db.run(
             'INSERT INTO conversations (phone, message, response) VALUES (?, ?, ?)',
             [numero, mensaje.substring(0, 500), text.substring(0, 500)]
@@ -522,13 +509,14 @@ Instrucciones específicas:
 }
 
 // ================================================
-// INICIALIZAR WPPCONNECT
+// INICIALIZAR WPPCONNECT (SIN FUNCIONES DE ESTADO)
 // ================================================
 async function startBot() {
     try {
         const client = await wppconnect.create({
             session: 'ssh-bot-session',
             statusFind: (statusSession, session) => {
+                // Solo loguear, no crear estados
                 console.log('Status Session:', statusSession);
             },
             headless: true,
@@ -536,6 +524,8 @@ async function startBot() {
             useChrome: true,
             debug: false,
             logQR: true,
+            disableWelcome: true, // Desactiva mensaje de bienvenida automático
+            updatesLog: false,     // Desactiva logs de actualizaciones
             browserWS: '',
             browserArgs: [
                 '--no-sandbox',
@@ -548,13 +538,33 @@ async function startBot() {
             ],
             puppeteerOptions: {
                 executablePath: '/usr/bin/google-chrome'
+            },
+            // Desactivar funciones de estado
+            createOptions: {
+                status: false,
+                disableStatus: true
             }
         });
 
-        console.log('✅ WPPConnect iniciado correctamente');
+        console.log('✅ WPPConnect iniciado (MODO SIN ESTADOS)');
 
+        // Sobrescribir funciones de estado para asegurar que no se usen
+        client.setStatus = async () => {
+            console.log('🚫 Intento de cambiar estado bloqueado');
+            return;
+        };
+
+        client.setProfileStatus = async () => {
+            console.log('🚫 Intento de cambiar perfil bloqueado');
+            return;
+        };
+
+        // Solo escuchar mensajes directos
         client.onMessage(async (message) => {
+            // Ignorar mensajes de grupos y estados
             if (message.isGroupMsg) return;
+            if (message.from.includes('status')) return;
+            if (message.from.includes('broadcast')) return;
             
             const numero = message.from;
             const texto = message.body;
@@ -568,17 +578,12 @@ async function startBot() {
                         [numero, message.sender.pushname || 'Cliente']);
                 }
                 
-                // Simular que está escribiendo
-                await client.startTyping(numero);
-                
-                // Procesar con IA mejorada
+                // Procesar con IA
                 const respuesta = await procesarConIA(
                     texto,
                     numero,
                     message.sender.pushname || 'Cliente'
                 );
-                
-                await client.stopTyping(numero);
                 
                 if (respuesta) {
                     await client.sendText(numero, respuesta);
@@ -629,7 +634,7 @@ app.get('/api/bot/info', (req, res) => {
         version: config.bot.version,
         status: 'online',
         ai_model: 'gemini-pro',
-        technical_detection: true
+        status_mode: 'DESACTIVADO' // Importante: indicar que los estados están desactivados
     });
 });
 
@@ -641,7 +646,7 @@ app.get('/', (req, res) => {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Panel VPS - ${config.bot.name}</title>
+            <title>Panel VPS - ${config.bot.name} (SIN ESTADOS)</title>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <style>
@@ -661,6 +666,14 @@ app.get('/', (req, res) => {
                     text-align: center;
                     margin-bottom: 30px;
                     text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+                }
+                .status-badge {
+                    background: #e74c3c;
+                    color: white;
+                    padding: 5px 10px;
+                    border-radius: 5px;
+                    display: inline-block;
+                    margin-bottom: 20px;
                 }
                 .stats-grid {
                     display: grid;
@@ -728,6 +741,7 @@ app.get('/', (req, res) => {
         <body>
             <div class="container">
                 <h1>🤖 Panel VPS - ${config.bot.name}</h1>
+                <div class="status-badge">🔕 MODO SIN ESTADOS ACTIVADO</div>
                 
                 <div class="stats-grid" id="stats">
                     <div class="stat-card">
@@ -739,7 +753,7 @@ app.get('/', (req, res) => {
                         <div class="stat-value" id="todayChats">0</div>
                     </div>
                     <div class="stat-card">
-                        <div>🔧 Problemas Técnicos</div>
+                        <div>🔧 Problemas</div>
                         <div class="stat-value" id="totalIssues">0</div>
                     </div>
                     <div class="stat-card">
@@ -790,7 +804,7 @@ app.get('/', (req, res) => {
                         
                         const issues = await fetch('/api/issues/recent').then(r => r.json());
                         document.getElementById('issuesBody').innerHTML = issues.length ?
-                            issues.map(i => \`<tr><td>\${i.phone}</td><td>\${Math.round(i.confidence_score*100)}%</td><td><span class="badge \${i.resolved ? 'badge-success' : 'badge-warning'}">\${i.resolved ? 'Resuelto' : 'Pendiente'}</span></td></tr>\`).join('') :
+                            issues.map(i => \`<tr><td>\${i.phone}</td><td>\${Math.round(i.confidence_score*100)}%</td><td><span class="badge badge-warning">\${i.resolved ? 'Resuelto' : 'Pendiente'}</span></td></tr>\`).join('') :
                             '<tr><td colspan="3">Sin problemas</td></tr>';
                     } catch (e) { console.error(e); }
                 }
@@ -807,11 +821,12 @@ app.get('/', (req, res) => {
 // ================================================
 app.listen(config.bot.panel_port, '0.0.0.0', () => {
     console.log(`
-╔════════════════════════════════════════════════════╗
+╔══════════════════════════════════════════════════════════╗
 ║  📊 PANEL VPS: http://${config.bot.server_ip}:${config.bot.panel_port}
 ║  🤖 Bot: ${config.bot.name}
-║  🔧 IA Mejorada: ACTIVADA (detección técnica)
-╚════════════════════════════════════════════════════╝
+║  🔕 ESTADOS: COMPLETAMENTE DESACTIVADOS
+║  🔧 IA Mejorada: ACTIVADA
+╚══════════════════════════════════════════════════════════╝
     `);
 });
 
@@ -857,7 +872,7 @@ nginx -t && systemctl restart nginx || echo -e "${YELLOW}⚠️ Nginx no configu
 # ================================================
 # INICIAR BOT CON PM2
 # ================================================
-echo -e "\n${CYAN}🚀 Iniciando bot con PM2...${NC}"
+echo -e "\n${CYAN}🚀 Iniciando bot con PM2 (SIN ESTADOS)...${NC}"
 cd "$INSTALL_DIR"
 pm2 start bot.js --name wppconnect-bot
 pm2 save
@@ -881,11 +896,13 @@ clear
 echo -e "${GREEN}${BOLD}"
 echo "╔════════════════════════════════════════════════════╗"
 echo "║     ✅ INSTALACIÓN COMPLETADA                      ║"
+echo "║     🔕 MODO SIN ESTADOS ACTIVADO                   ║"
 echo "╚════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
 echo -e "${CYAN}${BOLD}📱 BOT WPPCONNECT + IA MEJORADA${NC}"
 echo -e "   • Nombre: ${GREEN}$BOT_NAME${NC}"
+echo -e "   • Estados: ${RED}COMPLETAMENTE DESACTIVADOS${NC} 🔕"
 echo -e "   • IA Mejorada: ${GREEN}ACTIVADA (detección técnica)${NC}"
 echo -e "   • Panel VPS: ${GREEN}http://$SERVER_IP:$PANEL_PORT${NC}"
 echo
@@ -907,10 +924,11 @@ echo -e "   • Ver logs: ${GREEN}pm2 logs wppconnect-bot${NC}"
 echo -e "   • Reiniciar: ${GREEN}pm2 restart wppconnect-bot${NC}"
 echo
 
-echo -e "${YELLOW}${BOLD}⚠️  DETECCIÓN TÉCNICA AUTOMÁTICA ACTIVADA${NC}"
-echo -e "   • El bot detecta automáticamente problemas técnicos"
-echo -e "   • Ofrece guías detalladas de solución"
-echo -e "   • Registra todos los incidentes en el panel"
+echo -e "${RED}${BOLD}🔕 ESTADOS DE WHATSAPP: COMPLETAMENTE DESACTIVADOS${NC}"
+echo -e "   • El bot NO crea estados"
+echo -e "   • El bot NO cambia foto de perfil"
+echo -e "   • El bot NO cambia nombre"
+echo -e "   • El bot NO envía mensajes automáticos"
 echo
 
 echo -e "${GREEN}${BOLD}✅ MOSTRANDO LOGS (ESPERA EL QR)...${NC}"

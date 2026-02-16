@@ -1,13 +1,14 @@
 #!/bin/bash
 # ================================================
-# BOT WHATSAPP - VERSIÓN MODIFICADA (SIN SSH NI PAGOS)
+# BOT WHATSAPP - VERSIÓN SOLO BOT CON GEMINI AI
 # ================================================
 # CARACTERÍSTICAS:
 # ✅ GEMINI AI INTEGRADO
-# ✅ PANEL VPS COMPLETO CON ESTADÍSTICAS
 # ✅ SIN CREACIÓN AUTOMÁTICA DE USUARIOS SSH
 # ✅ SIN PAGOS AUTOMÁTICOS (MERCADOPAGO DESACTIVADO)
 # ✅ SIN ESTADOS AUTOMÁTICOS EN WHATSAPP
+# ✅ SIN PANEL WEB
+# ✅ SQLITE3 INSTALADO AUTOMÁTICAMENTE
 # ✅ NOMBRE DINÁMICO (SOLO VISUAL, RUTA FIJA /sshbot)
 # ================================================
 
@@ -38,7 +39,7 @@ cat << "BANNER"
 ╠══════════════════════════════════════════════════════════════╣
 ║                                                              ║
 ║              🤖 BOT WHATSAPP - VERSIÓN GEMINI               ║
-║     ✅ CON IA DE GEMINI · ✅ PANEL VPS · ✅ SIN SSH         ║
+║            ✅ SOLO BOT · SIN PANEL · SIN SSH                ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 BANNER
@@ -48,16 +49,31 @@ echo -e "${GREEN}✅ CARACTERÍSTICAS:${NC}"
 echo -e "  🤖 ${CYAN}Gemini AI${NC} - Integración con Google Gemini"
 echo -e "  💬 ${YELLOW}Prompt personalizado${NC} - Asistente de ventas configurado"
 echo -e "  📱 ${PURPLE}Android/iPhone${NC} - Información para ambos sistemas"
-echo -e "  📊 ${BLUE}Panel VPS${NC} - Estadísticas y control total"
 echo -e "  🚫 ${RED}Sin SSH${NC} - Sin creación automática de usuarios"
 echo -e "  🚫 ${RED}Sin MercadoPago${NC} - Sin pagos automáticos"
 echo -e "  🚫 ${RED}Sin estados${NC} - No publica estados en WhatsApp"
+echo -e "  🚫 ${RED}Sin panel web${NC} - Solo bot de atención"
 echo -e "  📁 ${CYAN}Ruta fija${NC} - /sshbot (el nombre es solo visual)"
 echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}\n"
 
 # Verificar root
 if [[ $EUID -ne 0 ]]; then
     echo -e "${RED}❌ Debes ejecutar como root${NC}"
+    exit 1
+fi
+
+# ================================================
+# INSTALAR SQLITE3 (NECESARIO PARA LA BASE DE DATOS)
+# ================================================
+echo -e "\n${CYAN}${BOLD}📦 INSTALANDO SQLITE3...${NC}"
+apt-get update -y
+apt-get install -y sqlite3
+
+# Verificar instalación
+if command -v sqlite3 &> /dev/null; then
+    echo -e "${GREEN}✅ SQLite3 instalado correctamente: $(sqlite3 --version)${NC}"
+else
+    echo -e "${RED}❌ Error instalando SQLite3${NC}"
     exit 1
 fi
 
@@ -70,7 +86,7 @@ echo -e "\n${CYAN}${BOLD}⚙️ CONFIGURACIÓN DEL BOT${NC}"
 read -p "📝 NOMBRE PARA TU BOT (ej: TIENDA LIBRE|AR o SERVERTUC): " BOT_NAME
 BOT_NAME=${BOT_NAME:-"TIENDA LIBRE|AR"}
 
-# Crear versión segura para rutas (pero no la usaremos para la ruta principal)
+# Crear versión segura para procesos
 SAFE_NAME=$(echo "$BOT_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]-')
 SAFE_NAME=${SAFE_NAME:-"bot"}
 
@@ -126,7 +142,7 @@ echo -e "${GREEN}✅ Limpieza completada${NC}"
 # CREAR ESTRUCTURA
 # ================================================
 echo -e "\n${CYAN}${BOLD}📁 CREANDO ESTRUCTURA...${NC}"
-mkdir -p "$INSTALL_DIR"/{data,config,sessions,logs,qr_codes,panel/static,views}
+mkdir -p "$INSTALL_DIR"/{data,config,sessions,logs,qr_codes}
 mkdir -p "$SESSION_DIR"
 chmod -R 755 "$INSTALL_DIR"
 chmod -R 700 "$SESSION_DIR"
@@ -200,10 +216,6 @@ PRICE_50D=${PRICE_50D:-9700}
 read -p "⏰ Horas de prueba gratis (2): " TEST_HOURS
 TEST_HOURS=${TEST_HOURS:-2}
 
-# Puerto para el panel
-read -p "🌐 Puerto para el panel VPS (3000): " PANEL_PORT
-PANEL_PORT=${PANEL_PORT:-3000}
-
 # Detectar IP
 SERVER_IP=$(curl -4 -s --max-time 10 ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
 SERVER_IP=${SERVER_IP:-"127.0.0.1"}
@@ -235,12 +247,11 @@ cat > "$CONFIG_FILE" << EOF
     "bot": {
         "name": "$BOT_NAME",
         "safe_name": "$SAFE_NAME",
-        "version": "1.0-GEMINI-PANEL",
+        "version": "1.0-GEMINI-ONLY",
         "server_ip": "$SERVER_IP",
         "test_hours": $TEST_HOURS,
         "info_file": "$INFO_FILE",
-        "process_name": "$PROCESS_NAME",
-        "panel_port": $PANEL_PORT
+        "process_name": "$PROCESS_NAME"
     },
     "gemini": {
         "api_key": "$GEMINI_API_KEY",
@@ -269,15 +280,13 @@ cat > "$CONFIG_FILE" << EOF
         "database": "$DB_FILE",
         "chromium": "/usr/bin/google-chrome",
         "qr_codes": "$INSTALL_DIR/qr_codes",
-        "sessions": "$SESSION_DIR",
-        "panel_static": "$INSTALL_DIR/panel/static",
-        "panel_views": "$INSTALL_DIR/views"
+        "sessions": "$SESSION_DIR"
     },
     "features": {
         "ssh_creation": false,
         "automatic_payments": false,
         "whatsapp_status": false,
-        "panel_vps": true
+        "panel_vps": false
     }
 }
 EOF
@@ -363,7 +372,7 @@ apt-get install -y google-chrome-stable
 
 # Otras dependencias
 echo -e "${YELLOW}📦 Instalando utilidades...${NC}"
-apt-get install -y sqlite3 jq curl wget git unzip nginx
+apt-get install -y jq curl wget git unzip
 
 # ================================================
 # INSTALAR PM2
@@ -380,7 +389,7 @@ cat > "$INSTALL_DIR/package.json" << 'EOF'
 {
     "name": "wassh-bot-gemini",
     "version": "1.0.0",
-    "description": "Bot WhatsApp con Gemini AI y Panel VPS",
+    "description": "Bot WhatsApp con Gemini AI",
     "main": "bot.js",
     "scripts": {
         "start": "node bot.js",
@@ -392,9 +401,7 @@ cat > "$INSTALL_DIR/package.json" << 'EOF'
         "@google/generative-ai": "^0.1.3",
         "whatsapp-web.js": "^1.23.0",
         "qrcode-terminal": "^0.12.0",
-        "express": "^4.18.2",
         "sqlite3": "^5.1.6",
-        "cors": "^2.8.5",
         "axios": "^1.6.0",
         "moment": "^2.29.4"
     }
@@ -402,7 +409,7 @@ cat > "$INSTALL_DIR/package.json" << 'EOF'
 EOF
 
 # ================================================
-# CREAR ARCHIVO PRINCIPAL DEL BOT
+# CREAR ARCHIVO PRINCIPAL DEL BOT (SIN EXPRESS)
 # ================================================
 echo -e "\n${CYAN}📝 Creando archivo principal del bot...${NC}"
 
@@ -410,11 +417,9 @@ cat > "$INSTALL_DIR/bot.js" << 'EOF'
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
-const cors = require('cors');
 
 // Configuración
 const config = JSON.parse(fs.readFileSync('/sshbot/config/config.json'));
@@ -428,12 +433,6 @@ if (config.gemini.enabled) {
 
 // Base de datos
 const db = new sqlite3.Database(config.paths.database);
-
-// Express app
-const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(express.static('/sshbot/panel/static'));
 
 // ================================================
 // CLIENTE WHATSAPP
@@ -503,12 +502,10 @@ async function manejarComandos(message) {
     
     switch(comando) {
         case '/info':
-        case '/info':
             const infoText = fs.readFileSync(config.bot.info_file, 'utf8');
             await message.reply(infoText);
             break;
             
-        case '/precios':
         case '/precios':
             await message.reply(`💰 *PRECIOS*\n\n` +
                 `📱 Servicio para *PERSONAL* (Abono y Prepago)\n` +
@@ -522,13 +519,11 @@ async function manejarComandos(message) {
             break;
             
         case '/soporte':
-        case '/soporte':
             await message.reply(`Te transfiero con un representante para que puedas contratar el servicio.\n\n` +
                 `🔗 *Enlace directo:* ${config.links.support}\n\n` +
                 `🕐 Horario de atención: 10:30 a 22:30`);
             break;
             
-        case '/android':
         case '/android':
             await message.reply(`📱 *DESCARGA PARA ANDROID*\n\n` +
                 `✅ Compatible con PERSONAL Abono y Prepago\n\n` +
@@ -536,8 +531,6 @@ async function manejarComandos(message) {
                 `Después de instalar, escribe /soporte para que te ayuden con la configuración.`);
             break;
             
-        case '/iphone':
-        case '/apple':
         case '/iphone':
             await message.reply(`📱 *DESCARGA PARA IPHONE*\n\n` +
                 `✅ Compatible con PERSONAL Abono y Prepago\n\n` +
@@ -560,10 +553,17 @@ async function manejarComandos(message) {
 client.on('qr', (qr) => {
     console.log('\n📱 ESCANEA ESTE QR CON WHATSAPP:\n');
     qrcode.generate(qr, { small: true });
+    
+    // Guardar QR como imagen (opcional)
+    const qrPath = path.join(config.paths.qr_codes, 'qr_latest.txt');
+    fs.writeFileSync(qrPath, qr);
 });
 
 client.on('ready', () => {
     console.log('\n✅ BOT CONECTADO A WHATSAPP\n');
+    console.log(`🤖 Bot: ${config.bot.name}`);
+    console.log(`🤖 Gemini: ${config.gemini.enabled ? 'ACTIVADO' : 'DESACTIVADO'}`);
+    console.log(`📱 Comandos: /info, /precios, /soporte, /android, /iphone\n`);
     
     db.run(
         'INSERT INTO logs (type, message) VALUES (?, ?)',
@@ -579,6 +579,12 @@ client.on('message', async (message) => {
         if (message.from.includes('@g.us')) return;
         
         console.log(`📨 Mensaje de ${numero}: ${message.body}`);
+        
+        // Registrar usuario si no existe
+        db.run(
+            'INSERT OR IGNORE INTO users (phone, created_at) VALUES (?, CURRENT_TIMESTAMP)',
+            [numero]
+        );
         
         // Verificar si es un comando
         if (message.body.startsWith('/')) {
@@ -598,375 +604,8 @@ client.on('message', async (message) => {
 });
 
 // ================================================
-// API ENDPOINTS PARA EL PANEL
+// INICIAR BOT
 // ================================================
-app.get('/api/stats', (req, res) => {
-    db.get(`
-        SELECT 
-            (SELECT COUNT(*) FROM users) as total_users,
-            (SELECT COUNT(*) FROM users WHERE tipo='test') as test_users,
-            (SELECT COUNT(*) FROM conversations WHERE date(created_at) = date('now')) as today_conversations,
-            (SELECT COUNT(*) FROM conversations) as total_conversations
-    `, (err, row) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-        } else {
-            res.json(row || { total_users: 0, test_users: 0, today_conversations: 0, total_conversations: 0 });
-        }
-    });
-});
-
-app.get('/api/users/recent', (req, res) => {
-    db.all(`
-        SELECT * FROM users 
-        ORDER BY created_at DESC 
-        LIMIT 10
-    `, (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-        } else {
-            res.json(rows || []);
-        }
-    });
-});
-
-app.get('/api/conversations/recent', (req, res) => {
-    db.all(`
-        SELECT * FROM conversations 
-        ORDER BY created_at DESC 
-        LIMIT 20
-    `, (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-        } else {
-            res.json(rows || []);
-        }
-    });
-});
-
-app.get('/api/logs', (req, res) => {
-    db.all(`
-        SELECT * FROM logs 
-        ORDER BY created_at DESC 
-        LIMIT 20
-    `, (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-        } else {
-            res.json(rows || []);
-        }
-    });
-});
-
-app.get('/api/bot/info', (req, res) => {
-    res.json({
-        name: config.bot.name,
-        status: 'online',
-        uptime: process.uptime(),
-        gemini_enabled: config.gemini.enabled,
-        version: config.bot.version
-    });
-});
-
-// ================================================
-// PANEL VPS - PÁGINA PRINCIPAL
-// ================================================
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'views', 'panel.html'));
-});
-
-// Crear panel HTML simple si no existe
-const panelHTML = \`
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Panel VPS - \${config.bot.name}</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        h1 {
-            color: white;
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .stat-card {
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            text-align: center;
-            transition: transform 0.3s;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-        }
-        .stat-value {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #667eea;
-            margin: 10px 0;
-        }
-        .stat-label {
-            color: #666;
-            font-size: 1.1em;
-        }
-        .sections {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        .section {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .section h2 {
-            color: #333;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #667eea;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background: #f8f9fa;
-            color: #333;
-            font-weight: 600;
-        }
-        tr:hover {
-            background: #f5f5f5;
-        }
-        .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-        .badge-success {
-            background: #28a745;
-            color: white;
-        }
-        .badge-info {
-            background: #17a2b8;
-            color: white;
-        }
-        .refresh-btn {
-            display: block;
-            width: 200px;
-            margin: 20px auto;
-            padding: 10px 20px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background 0.3s;
-        }
-        .refresh-btn:hover {
-            background: #5a67d8;
-        }
-        @media (max-width: 768px) {
-            .sections {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🤖 Panel de Control - \${config.bot.name}</h1>
-        
-        <div class="stats-grid" id="stats">
-            <div class="stat-card">
-                <div>📱 Usuarios Totales</div>
-                <div class="stat-value" id="totalUsers">-</div>
-            </div>
-            <div class="stat-card">
-                <div>🧪 En Prueba</div>
-                <div class="stat-value" id="testUsers">-</div>
-            </div>
-            <div class="stat-card">
-                <div>💬 Conversaciones Hoy</div>
-                <div class="stat-value" id="todayChats">-</div>
-            </div>
-            <div class="stat-card">
-                <div>📊 Total Conversaciones</div>
-                <div class="stat-value" id="totalChats">-</div>
-            </div>
-        </div>
-
-        <div class="sections">
-            <div class="section">
-                <h2>📱 Usuarios Recientes</h2>
-                <table id="usersTable">
-                    <thead>
-                        <tr>
-                            <th>Teléfono</th>
-                            <th>Tipo</th>
-                            <th>Fecha</th>
-                        </tr>
-                    </thead>
-                    <tbody id="usersBody">
-                        <tr><td colspan="3">Cargando...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="section">
-                <h2>💬 Últimas Conversaciones</h2>
-                <table id="conversationsTable">
-                    <thead>
-                        <tr>
-                            <th>Teléfono</th>
-                            <th>Mensaje</th>
-                            <th>Hora</th>
-                        </tr>
-                    </thead>
-                    <tbody id="conversationsBody">
-                        <tr><td colspan="3">Cargando...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="section" style="margin-top:20px;">
-            <h2>📋 Últimos Logs</h2>
-            <table id="logsTable">
-                <thead>
-                    <tr>
-                        <th>Tipo</th>
-                        <th>Mensaje</th>
-                        <th>Hora</th>
-                    </tr>
-                </thead>
-                <tbody id="logsBody">
-                    <tr><td colspan="3">Cargando...</td></tr>
-                </tbody>
-            </table>
-        </div>
-
-        <button class="refresh-btn" onclick="cargarDatos()">🔄 Actualizar Datos</button>
-    </div>
-
-    <script>
-        async function cargarDatos() {
-            try {
-                // Cargar estadísticas
-                const statsRes = await fetch('/api/stats');
-                const stats = await statsRes.json();
-                document.getElementById('totalUsers').textContent = stats.total_users || 0;
-                document.getElementById('testUsers').textContent = stats.test_users || 0;
-                document.getElementById('todayChats').textContent = stats.today_conversations || 0;
-                document.getElementById('totalChats').textContent = stats.total_conversations || 0;
-
-                // Cargar usuarios
-                const usersRes = await fetch('/api/users/recent');
-                const users = await usersRes.json();
-                const usersBody = document.getElementById('usersBody');
-                if (users.length === 0) {
-                    usersBody.innerHTML = '<tr><td colspan="3">No hay usuarios</td></tr>';
-                } else {
-                    usersBody.innerHTML = users.map(user => 
-                        \`<tr>
-                            <td>\${user.phone}</td>
-                            <td><span class="badge \${user.tipo === 'test' ? 'badge-info' : 'badge-success'}">\${user.tipo}</span></td>
-                            <td>\${new Date(user.created_at).toLocaleString()}</td>
-                        </tr>\`
-                    ).join('');
-                }
-
-                // Cargar conversaciones
-                const convRes = await fetch('/api/conversations/recent');
-                const conversations = await convRes.json();
-                const convBody = document.getElementById('conversationsBody');
-                if (conversations.length === 0) {
-                    convBody.innerHTML = '<tr><td colspan="3">No hay conversaciones</td></tr>';
-                } else {
-                    convBody.innerHTML = conversations.map(conv => 
-                        \`<tr>
-                            <td>\${conv.phone}</td>
-                            <td>\${conv.message.substring(0, 30)}\${conv.message.length > 30 ? '...' : ''}</td>
-                            <td>\${new Date(conv.created_at).toLocaleTimeString()}</td>
-                        </tr>\`
-                    ).join('');
-                }
-
-                // Cargar logs
-                const logsRes = await fetch('/api/logs');
-                const logs = await logsRes.json();
-                const logsBody = document.getElementById('logsBody');
-                if (logs.length === 0) {
-                    logsBody.innerHTML = '<tr><td colspan="3">No hay logs</td></tr>';
-                } else {
-                    logsBody.innerHTML = logs.map(log => 
-                        \`<tr>
-                            <td>\${log.type}</td>
-                            <td>\${log.message}</td>
-                            <td>\${new Date(log.created_at).toLocaleTimeString()}</td>
-                        </tr>\`
-                    ).join('');
-                }
-            } catch (error) {
-                console.error('Error cargando datos:', error);
-            }
-        }
-
-        // Cargar datos cada 30 segundos
-        cargarDatos();
-        setInterval(cargarDatos, 30000);
-    </script>
-</body>
-</html>
-\`;
-
-// Guardar panel HTML
-fs.writeFileSync(path.join(__dirname, 'views', 'panel.html'), panelHTML);
-
-// ================================================
-// INICIAR SERVIDOR
-// ================================================
-app.listen(config.bot.panel_port, '0.0.0.0', () => {
-    console.log(\`
-╔════════════════════════════════════════════════════╗
-║  📊 PANEL VPS ACTIVADO                             ║
-╠════════════════════════════════════════════════════╣
-║  • URL: http://\${config.bot.server_ip}:\${config.bot.panel_port}  ║
-║  • Gemini: \${config.gemini.enabled ? '✅ ACTIVADO' : '❌ DESACTIVADO'}                ║
-║  • Bot: \${config.bot.name}                         ║
-╚════════════════════════════════════════════════════╝
-    \`);
-});
-
 client.initialize();
 
 // Manejo de errores no capturados
@@ -981,6 +620,8 @@ process.on('unhandledRejection', (reason, promise) => {
     db.run('INSERT INTO logs (type, message, data) VALUES (?, ?, ?)',
         ['unhandled_rejection', reason.toString(), JSON.stringify({reason, promise})]);
 });
+
+console.log('🚀 Iniciando bot WhatsApp...');
 EOF
 
 # ================================================
@@ -989,33 +630,6 @@ EOF
 echo -e "\n${CYAN}📦 Instalando dependencias de Node.js...${NC}"
 cd "$INSTALL_DIR"
 npm install
-
-# ================================================
-# CONFIGURAR NGINX (OPCIONAL)
-# ================================================
-echo -e "\n${CYAN}🌐 Configurando Nginx para el panel...${NC}"
-cat > /etc/nginx/sites-available/wassh-panel << EOF
-server {
-    listen 80;
-    server_name $SERVER_IP;
-
-    location / {
-        proxy_pass http://localhost:$PANEL_PORT;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
-EOF
-
-ln -sf /etc/nginx/sites-available/wassh-panel /etc/nginx/sites-enabled/ 2>/dev/null || true
-rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
-nginx -t 2>/dev/null && systemctl restart nginx || echo -e "${YELLOW}⚠️  Nginx no se pudo configurar, pero el panel funciona en el puerto $PANEL_PORT${NC}"
 
 # ================================================
 # INICIAR EL BOT CON PM2
@@ -1057,12 +671,6 @@ echo -e "${CYAN}${BOLD}📱 BOT WHATSAPP${NC}"
 echo -e "   • Nombre: ${GREEN}$BOT_NAME${NC}"
 echo -e "   • Estado: ${GREEN}ACTIVO${NC}"
 echo -e "   • Gemini AI: ${GREEN}$([ -n "$GEMINI_API_KEY" ] && echo "ACTIVADO" || echo "DESACTIVADO")${NC}"
-echo
-
-echo -e "${CYAN}${BOLD}📊 PANEL VPS${NC}"
-echo -e "   • URL Directa: ${GREEN}http://$SERVER_IP:$PANEL_PORT${NC}"
-echo -e "   • URL vía Nginx: ${GREEN}http://$SERVER_IP${NC} (si funciona)"
-echo -e "   • Puerto: ${GREEN}$PANEL_PORT${NC}"
 echo
 
 echo -e "${CYAN}${BOLD}📁 RUTAS${NC}"

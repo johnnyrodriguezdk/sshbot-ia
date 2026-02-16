@@ -4,7 +4,7 @@
 # ================================================
 # CARACTERÍSTICAS:
 # ✅ WPPCONNECT
-# ✅ IA MEJORADA (SSH BOT PRO v8.7)
+# ✅ IA MEJORADA (GEMINI-1.5-PRO)
 # ✅ PANEL VPS COMPLETO
 # ✅ SIN CREACIÓN DE ESTADOS EN WHATSAPP
 # ✅ SIN CREACIÓN AUTOMÁTICA DE USUARIOS SSH
@@ -37,15 +37,15 @@ cat << "BANNER"
 ║        ╚═╝   ╚═╝╚══════╝╚═╝  ╚═══╝╚═════╝ ╚═╝  ╚═╝         ║
 ╠══════════════════════════════════════════════════════════════╣
 ║                                                              ║
-║       🤖 BOT WPPCONNECT + IA MEJORADA (SIN ESTADOS)         ║
-║     ✅ WPPCONNECT · ✅ IA OMNIPRESENTE · ✅ SIN ESTADOS     ║
+║       🤖 BOT WPPCONNECT + IA MEJORADA v2.0                  ║
+║     ✅ WPPCONNECT · ✅ GEMINI-1.5-PRO · ✅ SIN ESTADOS      ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 BANNER
 echo -e "${NC}"
 
 echo -e "${GREEN}✅ CARACTERÍSTICAS:${NC}"
-echo -e "  🤖 ${CYAN}IA MEJORADA${NC} - Asistencia técnica detallada"
+echo -e "  🤖 ${CYAN}IA MEJORADA (GEMINI-1.5-PRO)${NC} - Modelo más estable"
 echo -e "  📱 ${PURPLE}WPPConnect${NC} - Conexión WhatsApp estable"
 echo -e "  📊 ${BLUE}Panel VPS${NC} - Estadísticas y control total"
 echo -e "  🔕 ${RED}Sin Estados${NC} - NO crea estados en WhatsApp"
@@ -131,7 +131,7 @@ echo -e "${GREEN}✅ Estructura creada${NC}"
 # ================================================
 # CONFIGURACIÓN DE GEMINI AI
 # ================================================
-echo -e "\n${CYAN}${BOLD}🤖 CONFIGURACIÓN DE IA${NC}"
+echo -e "\n${CYAN}${BOLD}🤖 CONFIGURACIÓN DE IA (GEMINI-1.5-PRO)${NC}"
 read -p "🔑 Ingresa tu API Key de Google Gemini: " GEMINI_API_KEY
 GEMINI_API_KEY=${GEMINI_API_KEY:-""}
 
@@ -269,7 +269,7 @@ cat > "$CONFIG_FILE" << EOF
     "gemini": {
         "api_key": "$GEMINI_API_KEY",
         "enabled": true,
-        "model": "gemini-pro",
+        "model": "gemini-1.5-pro",
         "prompt_file": "$PROMPT_FILE"
     },
     "prices": {
@@ -399,9 +399,9 @@ cat > "$INSTALL_DIR/package.json" << 'EOF'
 EOF
 
 # ================================================
-# CREAR ARCHIVO PRINCIPAL DEL BOT (SIN ESTADOS)
+# CREAR ARCHIVO PRINCIPAL DEL BOT (SIN ESTADOS) - CON MODELO CORREGIDO
 # ================================================
-echo -e "\n${CYAN}📝 Creando archivo principal del bot (sin estados)...${NC}"
+echo -e "\n${CYAN}📝 Creando archivo principal del bot (sin estados, modelo gemini-1.5-pro)...${NC}"
 
 cat > "$INSTALL_DIR/bot.js" << 'EOF'
 const wppconnect = require('@wppconnect-team/wppconnect');
@@ -418,9 +418,9 @@ const moment = require('moment');
 const config = JSON.parse(fs.readFileSync('/sshbot/config/config.json'));
 const promptSistema = fs.readFileSync(config.gemini.prompt_file, 'utf8');
 
-// Inicializar Gemini
+// Inicializar Gemini con el modelo corregido (gemini-1.5-pro)
 const genAI = new GoogleGenerativeAI(config.gemini.api_key);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
 // Base de datos
 const db = new sqlite3.Database(config.paths.database);
@@ -524,8 +524,8 @@ async function startBot() {
             useChrome: true,
             debug: false,
             logQR: true,
-            disableWelcome: true, // Desactiva mensaje de bienvenida automático
-            updatesLog: false,     // Desactiva logs de actualizaciones
+            disableWelcome: true,
+            updatesLog: false,
             browserWS: '',
             browserArgs: [
                 '--no-sandbox',
@@ -539,7 +539,6 @@ async function startBot() {
             puppeteerOptions: {
                 executablePath: '/usr/bin/google-chrome'
             },
-            // Desactivar funciones de estado
             createOptions: {
                 status: false,
                 disableStatus: true
@@ -548,7 +547,7 @@ async function startBot() {
 
         console.log('✅ WPPConnect iniciado (MODO SIN ESTADOS)');
 
-        // Sobrescribir funciones de estado para asegurar que no se usen
+        // Sobrescribir funciones de estado
         client.setStatus = async () => {
             console.log('🚫 Intento de cambiar estado bloqueado');
             return;
@@ -633,8 +632,8 @@ app.get('/api/bot/info', (req, res) => {
         name: config.bot.name,
         version: config.bot.version,
         status: 'online',
-        ai_model: 'gemini-pro',
-        status_mode: 'DESACTIVADO' // Importante: indicar que los estados están desactivados
+        ai_model: 'gemini-1.5-pro',
+        status_mode: 'DESACTIVADO'
     });
 });
 
@@ -825,6 +824,7 @@ app.listen(config.bot.panel_port, '0.0.0.0', () => {
 ║  📊 PANEL VPS: http://${config.bot.server_ip}:${config.bot.panel_port}
 ║  🤖 Bot: ${config.bot.name}
 ║  🔕 ESTADOS: COMPLETAMENTE DESACTIVADOS
+║  🤖 Modelo IA: gemini-1.5-pro
 ║  🔧 IA Mejorada: ACTIVADA
 ╚══════════════════════════════════════════════════════════╝
     `);
@@ -872,7 +872,7 @@ nginx -t && systemctl restart nginx || echo -e "${YELLOW}⚠️ Nginx no configu
 # ================================================
 # INICIAR BOT CON PM2
 # ================================================
-echo -e "\n${CYAN}🚀 Iniciando bot con PM2 (SIN ESTADOS)...${NC}"
+echo -e "\n${CYAN}🚀 Iniciando bot con PM2 (SIN ESTADOS, modelo gemini-1.5-pro)...${NC}"
 cd "$INSTALL_DIR"
 pm2 start bot.js --name wppconnect-bot
 pm2 save
@@ -897,12 +897,14 @@ echo -e "${GREEN}${BOLD}"
 echo "╔════════════════════════════════════════════════════╗"
 echo "║     ✅ INSTALACIÓN COMPLETADA                      ║"
 echo "║     🔕 MODO SIN ESTADOS ACTIVADO                   ║"
+echo "║     🤖 MODELO: GEMINI-1.5-PRO                      ║"
 echo "╚════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
 echo -e "${CYAN}${BOLD}📱 BOT WPPCONNECT + IA MEJORADA${NC}"
 echo -e "   • Nombre: ${GREEN}$BOT_NAME${NC}"
 echo -e "   • Estados: ${RED}COMPLETAMENTE DESACTIVADOS${NC} 🔕"
+echo -e "   • Modelo IA: ${GREEN}gemini-1.5-pro${NC} (corregido)"
 echo -e "   • IA Mejorada: ${GREEN}ACTIVADA (detección técnica)${NC}"
 echo -e "   • Panel VPS: ${GREEN}http://$SERVER_IP:$PANEL_PORT${NC}"
 echo
